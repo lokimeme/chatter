@@ -70,7 +70,7 @@ static inline int send_all(int fd, const char *buf, size_t len) {
   size_t off = 0;
   while (off < len) {
     ssize_t n = send(fd, buf + off, len - off, 0);
-    3 if (n < 0) {
+      if (n < 0) {
       if (errno == EINTR)
         continue;
       if (errno == EAGAIN || errno == EWOULDBLOCK)
@@ -124,7 +124,7 @@ static inline ssize_t recv_line(int fd, char *buf, size_t cap) {
     if (r < 0) {
       if (errno == EINTR)
         continue;
-      4 return -1;
+        return -1;
     }
     if (r == 0) {
       if (tlen) {
