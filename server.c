@@ -43,7 +43,7 @@ static void add_client(Server *S, int fd) {
 static Client *find_client_by_fd(Server *S, int fd) {
   for (size_t i = 0; i < S->cap; ++i) {
     if (S->clients[i].active && S->clients[i].fd == fd)
-      return &S - > clients[i];
+      return &S->clients[i];
   }
   return NULL;
 }
@@ -66,7 +66,7 @@ static void remove_client(Server *S, int fd, const char *reason) {
     // broadcast to others
     for (size_t i = 0; i < S->cap; ++i) {
       if (S->clients[i].active && S->clients[i].fd != fd &&
-          S - > clients[i].username[0]) {
+          S->clients[i].username[0]) {
         send_all(S->clients[i].fd, out, strlen(out));
       }
     }
@@ -81,7 +81,7 @@ static void broadcast(Server *S, int from_fd, const char *msg) {
   Client *from = find_client_by_fd(S, from_fd);
   char line[MAX_LINE];
   snprintf(line, sizeof(line), "[%s] %s\n",
-           from && from->username[0] ? from - > username : "?", msg);
+           from && from->username[0] ? from->username : "?", msg);
   for (size_t i = 0; i < S->cap; ++i) {
     if (!S->clients[i].active)
       continue;
@@ -175,7 +175,7 @@ static void handle_client_line(Server *S, int fd, char *line) {
       snprintf(out, sizeof(out), "* %s joined\n", c->username);
       for (size_t i = 0; i < S->cap; ++i) {
         if (S->clients[i].active && S->clients[i].fd != fd &&
-            S - > clients[i].username[0]) {
+            S->clients[i].username[0]) {
           send_all(S->clients[i].fd, out, strlen(out));
         }
       }
@@ -249,7 +249,7 @@ int main(int argc, char **argv) {
         continue;
       die("select");
     }
-    for (int fd = 0; fd <= S->fdmax; ++fd) {
+    for (int fd = 0; fd <= S.fdmax; ++fd) {
       if (!FD_ISSET(fd, &readfds))
         continue;
       if (fd == S.listen_fd) {

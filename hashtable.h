@@ -27,5 +27,3 @@ typedef void (*ht_iter_cb)(const char *, int, void *);
 void ht_each(HashTable *ht, ht_iter_cb cb, void *user);
 // Free the table
 void ht_free(HashTable *ht);
-
-#endif

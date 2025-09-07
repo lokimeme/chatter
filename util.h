@@ -146,5 +146,3 @@ static inline ssize_t recv_line(int fd, char *buf, size_t cap) {
     }
   }
 }
-
-#endif
