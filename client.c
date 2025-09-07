@@ -35,7 +35,6 @@ int main(int argc, char **argv) {
   int fd = connect_to_host(host, port);
   if (fd < 0)
     die("connect");
-  // Read initial prompt and send username
   char buf[MAX_LINE];
   ssize_t n = recv(fd, buf, sizeof(buf) - 1, 0);
   if (n > 0) {
@@ -44,7 +43,6 @@ int main(int argc, char **argv) {
   }
   sendf(fd, "%s\n", username);
   printf("Connected as '%s'. Type messages or commands (/who, /msg, /nick, /quit).\n ", username);
-      // select loop
       for (;;) {
     fd_set rfds;
     FD_ZERO(&rfds);
@@ -79,7 +77,6 @@ int main(int argc, char **argv) {
         sendf(fd, "/quit\n");
         break;
       }
-      // Send line as-is
       send_all(fd, line, strlen(line));
     }
   }

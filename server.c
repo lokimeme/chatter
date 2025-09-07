@@ -1,20 +1,25 @@
 #include "util.h"
 #include "hashtable.h"
+
+//struct to make definitions
 typedef struct {
   int fd;
   char username[USERNAME_MAX];
   int active;
 } Client;
+
+//struct to manage info
 typedef struct {
   int listen_fd;
   fd_set master;
   int fdmax;
   Client *clients;
   size_t cap;
-  HashTable *users; // username -> fd
+  HashTable *users;
 } Server;
+
 static void add_client(Server *S, int fd) {
-  // expand array if needed
+  // array expansion
   for (size_t i = 0; i < S->cap; ++i) {
     if (!S->clients[i].active) {
       S->clients[i].fd = fd;
@@ -26,7 +31,6 @@ static void add_client(Server *S, int fd) {
       return;
     }
   }
-  // grow
   size_t old = S->cap;
   size_t ncap = old ? old * 2 : 64;
   S->clients = realloc(S->clients, ncap * sizeof(Client));
@@ -40,6 +44,7 @@ static void add_client(Server *S, int fd) {
   if (fd > S->fdmax)
     S->fdmax = fd;
 }
+
 static Client *find_client_by_fd(Server *S, int fd) {
   for (size_t i = 0; i < S->cap; ++i) {
     if (S->clients[i].active && S->clients[i].fd == fd)
@@ -47,6 +52,7 @@ static Client *find_client_by_fd(Server *S, int fd) {
   }
   return NULL;
 }
+
 static Client *find_client_by_name(Server *S, const char *name) {
   int fd = ht_get(S->users, name);
   if (fd < 0)
@@ -77,6 +83,7 @@ static void remove_client(Server *S, int fd, const char *reason) {
   c->username[0] = '\0';
   c->fd = -1;
 }
+
 static void broadcast(Server *S, int from_fd, const char *msg) {
   Client *from = find_client_by_fd(S, from_fd);
   char line[MAX_LINE];
@@ -93,6 +100,7 @@ static void broadcast(Server *S, int from_fd, const char *msg) {
     send_all(fd, line, strlen(line));
   }
 }
+
 static void send_user_list(Server *S, int fd) {
   sendf(fd, "* Online users:\n");
   void cb(const char *key, int value, void *user) {
@@ -102,6 +110,7 @@ static void send_user_list(Server *S, int fd) {
   }
   ht_each(S->users, cb, NULL);
 }
+
 static int is_valid_username(const char *u) {
   size_t n = strlen(u);
   if (n == 0 || n >= USERNAME_MAX)
@@ -113,6 +122,7 @@ static int is_valid_username(const char *u) {
   }
   return 1;
 }
+
 static int change_username(Server *S, Client *c, const char *newname) {
   if (!is_valid_username(newname)) {
     sendf(c->fd, "! invalid username. use [A-Za-z0-9_-], max %d chars\n",
@@ -130,8 +140,8 @@ static int change_username(Server *S, Client *c, const char *newname) {
   ht_put(S->users, c->username, c->fd);
   return 0;
 }
+
 static void handle_command(Server *S, Client *c, char *line) {
-  // line without trailing newline
   if (strncmp(line, "/who", 4) == 0) {
     send_user_list(S, c->fd);
   } else if (strncmp(line, "/quit", 5) == 0) {
@@ -161,6 +171,7 @@ static void handle_command(Server *S, Client *c, char *line) {
     sendf(c->fd, "! unknown command\n");
   }
 }
+
 static void handle_client_line(Server *S, int fd, char *line) {
   trim_newline(line);
   strip(line);
@@ -168,7 +179,6 @@ static void handle_client_line(Server *S, int fd, char *line) {
   if (!c)
     return;
   if (c->username[0] == '\0') {
-    // First line must be username
     if (change_username(S, c, line) == 0) {
       sendf(fd, "* welcome, %s!\n", c->username);
       char out[MAX_LINE];
@@ -190,6 +200,7 @@ static void handle_client_line(Server *S, int fd, char *line) {
     broadcast(S, fd, line);
   }
 }
+
 static int setup_listener(const char *port) {
   struct addrinfo hints, *res, *p;
   memset(&hints, 0, sizeof hints);
@@ -223,6 +234,7 @@ static int setup_listener(const char *port) {
   freeaddrinfo(res);
   return listen_fd;
 }
+
 int main(int argc, char **argv) {
   const char *port = (argc > 1) ? argv[1] : "5555";
   int listen_fd = setup_listener(port);
@@ -253,7 +265,6 @@ int main(int argc, char **argv) {
       if (!FD_ISSET(fd, &readfds))
         continue;
       if (fd == S.listen_fd) {
-        // accept
         struct sockaddr_storage ss;
         socklen_t slen = sizeof ss;
         int cfd = accept(S.listen_fd, (struct sockaddr *)&ss, &slen);
@@ -273,7 +284,6 @@ int main(int argc, char **argv) {
       }
     }
   }
-  // Unreachable normally
   close(S.listen_fd);
   ht_free(S.users);
   free(S.clients);

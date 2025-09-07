@@ -1,5 +1,7 @@
 #include "hashtable.h"
 #include "util.h"
+
+//functions to use hashtable
 static unsigned long hash_str(const char *s) {
   const unsigned long FNV_PRIME = 1099511628211u;
   unsigned long hash = 1469598103934665603u;
